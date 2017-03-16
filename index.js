@@ -1,42 +1,22 @@
 'use strict';
 
 import 'babel-polyfill';
-
 import Koa from 'koa';
-import Router from 'koa-router';
 import BodyParser from 'koa-bodyparser';
 import { Exceptions, ExceptionHandler } from './exceptions';
-import mongoose from 'mongoose';
-// import strategySchema from './models/strategy'
-import dotenv from 'dotenv';
-import variableExpansion from 'dotenv-expand';
-const myEnv = dotenv.config();
-variableExpansion(myEnv);
-/**
- *
- */
-mongoose.connect(myEnv.DB_URI, {
-    mongos: false
-
-}, function (err) {
-    if (err) {
-        // logger.warn('与mongodb断开连接 %ssec 后重试', process.env.RECONNECT_TIME / 1000);
-        setTimeout(connectMongo, process.env.RECONNECT_TIME);
-
-    }
-    else {
-        console.log('已连接到mongodb');
-    }
-});
-mongoose.Promise = require('q').Promise;
+import { mongodbConnect } from "./config/config";
 const app = new Koa();
+import onerror from 'koa-onerror';
+import api from "./routers/api"
+import staticServer from 'koa-static';
+import fs from 'fs';
+import path from 'path';
+import logConfig from './config/log_config';
+import logUtil from './utils/log_util';
+onerror(app);
+import Router from 'koa-router';
 const router = Router();
-// const Strategy = mongoose.model('Strategy', strategySchema);
-import fetch from 'node-fetch';
-
-/**
- Middlewares
- **/
+// import response_formatter from './middlewares/response_formatter';
 
 app
 // Counting time
@@ -52,7 +32,8 @@ app
 				throw new Exceptions.NotFound(`Endpoint [${ctx.request.url}] not found.`);
 			ctx.body = {
 				ok: true,
-				content: ctx.body
+                message: 'success',
+                data: ctx.body
 			};
 		} catch (e) {
 			ctx.body = ExceptionHandler(e);
@@ -66,19 +47,80 @@ app
 		ctx.state.body = ctx.request.body;
 		await next();
 	})
-	// routes
-	.use(router.routes())
-	// Allowed methods
-	.use(router.allowedMethods());
+    /**
+     * TODO VERSION QUESTIONS RESOLVED
+     */
+    // .use(response_formatter('^/api'))
+    .use(router.routes())
+    // Allowed methods
+    .use(router.allowedMethods());
+/**
+ *  Routers
+ */
+router.use('/api', api.routes(), api.allowedMethods());
 
 /**
- Routes
- **/
+ *  create mongodb connect
+ */
+mongodbConnect();
 
-router.get('/', (ctx, next) => {
+/**
+ * 静态文件
+ */
+app.use(staticServer(path.join(__dirname,'public')));
 
-	ctx.body = { hello: "world" };
+// logger
+app.use(async (ctx, next) => {
+    //响应开始时间
+    const start = new Date();
+    //响应间隔时间
+    let ms;
+    try {
+        //开始进入到下一个中间件
+        await next();
 
+        ms = new Date() - start;
+        //记录响应日志
+        logUtil.logResponse(ctx, ms);
+
+    } catch (error) {
+
+        ms = new Date() - start;
+        //记录异常日志
+        logUtil.logError(ctx, error, ms);
+    }
+});
+/**
+ * 确定目录是否存在，如果不存在则创建目录
+ */
+const confirmPath = function(pathStr) {
+
+    if(!fs.existsSync(pathStr)){
+        fs.mkdirSync(pathStr);
+        console.log('createPath: ' + pathStr);
+    }
+};
+
+/**
+ * 初始化log相关目录
+ */
+const initLogPath = function(){
+    //创建log的根目录'logs'
+    if(logConfig.baseLogPath){
+        confirmPath(logConfig.baseLogPath)
+        //根据不同的logType创建不同的文件目录
+        for(let i = 0, len = logConfig.appenders.length; i < len; i++){
+            if(logConfig.appenders[i].path){
+                confirmPath(logConfig.baseLogPath + logConfig.appenders[i].path);
+            }
+        }
+    }
+}
+
+initLogPath();
+
+app.on('error', function(err,ctx){
+    console.log(err);
 });
 
 

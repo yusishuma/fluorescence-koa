@@ -25,7 +25,13 @@ mongoose.Model.findAllAndCount = function(options) {
     ]);
 };
 
-// 数组属性分页
+/**
+ * 数组属性分页
+ * @param id
+ * @param property
+ * @param options
+ * @param callback
+ */
 mongoose.Model.paginateForPro = function (id, property, options, callback) {
     let searchOption = options.searchOption || {};
     searchOption._id = id;
