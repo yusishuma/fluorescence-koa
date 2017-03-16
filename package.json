@@ -1,0 +1,52 @@
+{
+  "name": "koa-babel-webpack-boilerplate",
+  "version": "1.0.0",
+  "description": "A simple REST server boilerplate with koa / babel / webpack",
+  "main": "index.js",
+  "scripts": {
+    "dev": "babel-node index.js",
+    "build": "webpack",
+    "start": "node bin/server.bundle.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Romuald R. (romualdr)",
+  "license": "ISC",
+  "dependencies": {
+    "ali-mns": "^2.4.0",
+    "aliyun-sdk": "^1.9.12",
+    "babel-polyfill": "^6.16.0",
+    "dotenv": "^2.0.0",
+    "dotenv-expand": "^0.1.0",
+    "koa": "^2.0.0-alpha.7",
+    "koa-bodyparser": "^3.2.0",
+    "koa-router": "^7.0.1",
+    "log4js": "^1.1.1",
+    "log4js-node-mongodb": "^2.2.1",
+    "mongoose": "^4.7.0",
+    "node-fetch": "^1.6.3",
+    "passport": "^0.3.2",
+    "passport-http": "^0.3.0",
+    "q": "^1.4.1",
+    "request": "^2.79.0"
+  },
+  "apps": [
+    {
+      "name": "koa-video",
+      "script": "bin/server.bundle.js",
+      "instances": 1,
+      "exec_mode": "cluster",
+      "merge_logs": true,
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  ],
+  "devDependencies": {
+    "babel-cli": "^6.18.0",
+    "babel-core": "^6.18.2",
+    "babel-loader": "^6.2.7",
+    "babel-preset-es2015": "^6.18.0",
+    "babel-preset-stage-0": "^6.16.0",
+    "webpack": "^1.13.3"
+  }
+}
