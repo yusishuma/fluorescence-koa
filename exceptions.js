@@ -30,19 +30,28 @@ class DatabaseError extends HTTPException {
   }
 }
 
-class NotFound extends HTTPException {
+class Unauthenticated extends HTTPException {
   constructor(message) {
     super();
-    this.type = "Not found";
+    this.type = "Unauthenticated";
     this.message = message;
-    this.status = 404;
+    this.status = 401;
   }
 }
 
+class NotFound extends HTTPException {
+    constructor(message) {
+        super();
+        this.type = "Not found";
+        this.message = message;
+        this.status = 404;
+    }
+}
 export let Exceptions = {
   BadRequest,
   DatabaseError,
-  NotFound
+  NotFound,
+  Unauthenticated
 };
 
 export function ExceptionHandler(exception) {

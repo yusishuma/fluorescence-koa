@@ -13,7 +13,21 @@ export const getUser = async (ctx, next) => {
 
 //用户注册
 export const registerUser = async (ctx, next) => {
+
     ctx.body = {message: 'success'}
     console.log('registerUser', ctx.request.body);
+};
+
+/**
+ * 登陆
+ * @param ctx
+ * @param next
+ * @returns {Promise.<void>}
+ */
+export const login = async (ctx, next) => {
+    ctx.body = {
+        username: '阿，希爸',
+        age: 30
+    };
 };
 

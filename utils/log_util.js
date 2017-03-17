@@ -2,9 +2,12 @@
  * Created by matonghe on 16/03/2017.
  */
 import log4js from "log4js";
-import log_config from '../config/log_config';
+import { log_config } from '../config/log_config';
 import mongoAppender from 'log4js-node-mongodb';
-import { PROCESS_ENV } from '../config/config';
+import dot_env from 'dotenv';
+import variableExpansion from 'dotenv-expand';
+const PROCESS_ENV = dot_env.config();
+variableExpansion(PROCESS_ENV);
 
 log4js.addAppender(mongoAppender.appender({
     connectionString: PROCESS_ENV.LOG_MONGODB_DB
@@ -17,7 +20,7 @@ const logUtil = {};
 
 const errorLogger = log4js.getLogger('errorLogger');
 const resLogger = log4js.getLogger('resLogger');
-const Logger = log4js.getLogger('http');
+logUtil.Logger = log4js.getLogger('http');
 
 //封装错误日志
 logUtil.logError = function (ctx, error, resTime) {

@@ -4,7 +4,7 @@
 import mongoose from "mongoose";
 import CONSTANTS from "../utils/constants";
 import Q from "q";
-import UserSchema from "user";
+import UserSchema from "./user";
 
 /**
  * 分页

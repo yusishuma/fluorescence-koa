@@ -3,29 +3,29 @@
  */
 import dot_env from 'dotenv';
 import variableExpansion from 'dotenv-expand';
-const PROCESS_ENV = dot_env.config();
+const  PROCESS_ENV = dot_env.config();
 variableExpansion(PROCESS_ENV);
 import mongoose from 'mongoose';
 mongoose.Promise = require('q').Promise;
+import logUtil from '../utils/log_util';
 
 /**
  * create mongodb connect
  */
-const mongodbConnect = function () {
+export const mongodbConnect = function () {
     mongoose.connect(PROCESS_ENV.DB_URI, {
         mongos: false
 
     }, function (err) {
         if (err) {
-            console.log('与mongodb断开连接 %ssec 后重试', PROCESS_ENV.RECONNECT_TIME / 1000);
+            logUtil.Logger.warn('与mongodb断开连接 %ssec 后重试', PROCESS_ENV.RECONNECT_TIME / 1000);
             setTimeout(mongodbConnect, PROCESS_ENV.RECONNECT_TIME);
 
         }
         else {
-            console.log('已连接到mongodb');
+            logUtil.Logger.info('已连接到mongodb');
         }
     });
 };
-mongoose.Promise = require('q').Promise;
 
-export  { PROCESS_ENV, mongodbConnect }
+mongoose.Promise = require('q').Promise;

@@ -2,6 +2,7 @@
 
 import 'babel-polyfill';
 import Koa from 'koa';
+import logger from 'koa-logger';
 import BodyParser from 'koa-bodyparser';
 import { Exceptions, ExceptionHandler } from './exceptions';
 import { mongodbConnect } from "./config/config";
@@ -9,14 +10,16 @@ const app = new Koa();
 import onerror from 'koa-onerror';
 import api from "./routers/api"
 import staticServer from 'koa-static';
-import fs from 'fs';
 import path from 'path';
-import logConfig from './config/log_config';
+import { initLogPath } from './config/log_config';
 import logUtil from './utils/log_util';
 onerror(app);
 import Router from 'koa-router';
 const router = Router();
-// import response_formatter from './middlewares/response_formatter';
+import './middlewares/passport/auth';
+import passport from "koa-passport";
+app.use(passport.initialize());
+app.use(passport.session());
 
 app
 // Counting time
@@ -28,8 +31,10 @@ app
 	.use(async (ctx, next) => {
 		try {
 			await next();
-			if (!ctx.body)
-				throw new Exceptions.NotFound(`Endpoint [${ctx.request.url}] not found.`);
+			if (!ctx.body){
+                ctx.status = 404;
+                throw new Exceptions.NotFound(`Endpoint [${ctx.request.url}] not found.`);
+            }else
 			ctx.body = {
 				ok: true,
                 message: 'success',
@@ -41,16 +46,17 @@ app
 	})
 	// Body parser
 	.use(BodyParser())
+	.use(logger())
 	.use(async (ctx, next) => {
 		ctx.state = {};
 		ctx.state.query = ctx.request.query;
 		ctx.state.body = ctx.request.body;
 		await next();
 	})
+
     /**
      * TODO VERSION QUESTIONS RESOLVED
      */
-    // .use(response_formatter('^/api'))
     .use(router.routes())
     // Allowed methods
     .use(router.allowedMethods());
@@ -58,6 +64,17 @@ app
  *  Routers
  */
 router.use('/api', api.routes(), api.allowedMethods());
+router.post('/custom', function(ctx, next) {
+    return passport.authenticate('local', function(err, user, info, status) {
+        if (user === false) {
+            ctx.status = 401;
+            throw new Exceptions.Unauthenticated(`Endpoint [${ctx.request.url}] Unauthenticated.`);
+        } else {
+            ctx.body = { success: true };
+            return ctx.login(user)
+        }
+    })(ctx, next)
+})
 
 /**
  *  create mongodb connect
@@ -70,6 +87,8 @@ mongodbConnect();
 app.use(staticServer(path.join(__dirname,'public')));
 
 // logger
+initLogPath();//初始化日志文件
+
 app.use(async (ctx, next) => {
     //响应开始时间
     const start = new Date();
@@ -90,37 +109,14 @@ app.use(async (ctx, next) => {
         logUtil.logError(ctx, error, ms);
     }
 });
-/**
- * 确定目录是否存在，如果不存在则创建目录
- */
-const confirmPath = function(pathStr) {
 
-    if(!fs.existsSync(pathStr)){
-        fs.mkdirSync(pathStr);
-        console.log('createPath: ' + pathStr);
+// Require authentication for now
+app.use(function(ctx, next) {
+    if (ctx.isAuthenticated()) {
+        return next()
+    } else {
+        this.status = 401;
     }
-};
-
-/**
- * 初始化log相关目录
- */
-const initLogPath = function(){
-    //创建log的根目录'logs'
-    if(logConfig.baseLogPath){
-        confirmPath(logConfig.baseLogPath)
-        //根据不同的logType创建不同的文件目录
-        for(let i = 0, len = logConfig.appenders.length; i < len; i++){
-            if(logConfig.appenders[i].path){
-                confirmPath(logConfig.baseLogPath + logConfig.appenders[i].path);
-            }
-        }
-    }
-}
-
-initLogPath();
-
-app.on('error', function(err,ctx){
-    console.log(err);
 });
 
 
@@ -128,5 +124,5 @@ app.on('error', function(err,ctx){
  launch
  */
 app.listen(3210, () => {
-	console.log('Listening on port 3210');
+    logUtil.Logger.info('Listening on port 3210');
 });
